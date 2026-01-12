@@ -334,3 +334,4 @@ with tab2:
     col1.metric("Precision@10", f"{precision:.3f}")
     col2.metric("Recall@10", f"{recall:.3f}")
 
+
