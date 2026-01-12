@@ -2,9 +2,9 @@ import pandas as pd
 import numpy as np
 import requests
 import os
+import streamlit as st
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
-
 from collaborative_filtering import predict_rating
 
 # =====================================================
@@ -31,14 +31,18 @@ movies["metadata"] = (
 )
 
 # =====================================================
-# SBERT EMBEDDINGS (DEEP LEARNING)
+# SBERT EMBEDDINGS (CACHED FOR STREAMLIT)
 # =====================================================
-sbert_model = SentenceTransformer("all-MiniLM-L6-v2")
-embeddings = sbert_model.encode(
-    movies["metadata"].tolist(),
-    show_progress_bar=True,
-    convert_to_numpy=True
-)
+@st.cache_resource(show_spinner="Loading SBERT model & embeddings...")
+def load_embeddings():
+    model = SentenceTransformer("all-MiniLM-L6-v2")
+    return model.encode(
+        movies["metadata"].tolist(),
+        convert_to_numpy=True,
+        show_progress_bar=False
+    )
+
+embeddings = load_embeddings()
 
 # =====================================================
 # HELPERS
@@ -56,7 +60,7 @@ def search_movie(query, limit=100):
     if not query:
         return pd.DataFrame()
 
-    df = movies[movies["clean_title"].str.contains(query.lower(), na=False)]
+    df = movies[movies["clean_title"].str.contains(query.lower(), na=False)].copy()
     df["score"] = (
         0.6 * normalize(df["rating"]) +
         0.4 * normalize(np.log1p(df["votes"]))
@@ -70,7 +74,7 @@ def search_by_genre(genre, limit=100):
     if not genre:
         return pd.DataFrame()
 
-    df = movies[movies["genres"].str.lower().str.contains(genre.lower(), na=False)]
+    df = movies[movies["genres"].str.lower().str.contains(genre.lower(), na=False)].copy()
     df["score"] = (
         0.6 * normalize(df["rating"]) +
         0.4 * normalize(np.log1p(df["votes"]))
@@ -212,3 +216,4 @@ def get_poster_url(title):
         return f"https://image.tmdb.org/t/p/w500{r['results'][0]['poster_path']}"
     except:
         return "https://dummyimage.com/300x450/000/fff&text=No+Poster"
+
