@@ -303,7 +303,6 @@ with tab2:
         if idx is not None:
             top_idx = compute_similarity_for_index(idx, top_n=10)
             labels = movies.iloc[top_idx]["title"]
-
             matrix = compute_similarity_matrix(top_idx)
 
             fig, ax = plt.subplots(figsize=(10, 8))
@@ -317,7 +316,7 @@ with tab2:
             plt.xticks(rotation=90)
             st.pyplot(fig)
 
-     st.markdown(f"""
+    st.markdown("""
     <div class="info-card">
     <strong>Precision@K:</strong> Fraction of recommended movies in the top K that are relevant.<br><br>
     <strong>Recall@K:</strong> Fraction of all relevant movies that appear in the top K.
@@ -329,6 +328,3 @@ with tab2:
     col1, col2 = st.columns(2)
     col1.metric("Precision@10", f"{precision:.3f}")
     col2.metric("Recall@10", f"{recall:.3f}")
-
-
-
