@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 from recommender_core import *
+from recommender_core import movies          # 🔧 FIX 1: required for heatmap
 from collaborative_filtering import train_collaborative_model
 
 RESULTS_PER_PAGE = 10
@@ -17,7 +18,7 @@ st.set_page_config(
 )
 
 # ==================================================
-# ADVANCED UI CSS (UNCHANGED)
+# UI CSS (UNCHANGED)
 # ==================================================
 st.markdown("""
 <style>
@@ -116,8 +117,7 @@ if not st.session_state.logged_in:
 # ==================================================
 if not st.session_state.cf_trained:
     with st.spinner("Training collaborative filtering model..."):
-        rmse = train_collaborative_model("ratings.csv")
-        st.session_state.rmse = rmse
+        st.session_state.rmse = train_collaborative_model("ratings.csv")
         st.session_state.cf_trained = True
 
 # ==================================================
@@ -131,148 +131,57 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # ==================================================
-# 🔍 MOVIE SEARCH
+# TABS
 # ==================================================
-st.header("🔍 Search Movies")
-query = st.text_input("Movie title")
-
-if st.button("Search Movie"):
-    st.session_state.search_page = 0
-    st.session_state.search_results = search_movie(query)
-
-if query and "search_results" in st.session_state:
-    results = st.session_state.search_results
-
-    if results.empty:
-        st.markdown("<div class='empty-box'>❌ Movie not found</div>", unsafe_allow_html=True)
-    else:
-        start = st.session_state.search_page * RESULTS_PER_PAGE
-        end = start + RESULTS_PER_PAGE
-
-        for _, row in results.iloc[start:end].iterrows():
-            c1, c2 = st.columns([1, 4])
-            with c1:
-                st.image(get_poster_url(row["title"]), width=140)
-            with c2:
-                st.markdown(f"""
-                <div class="card">
-                    <h3>{row['title']} ({row['year']})</h3>
-                    <p>🎭 {row['genres']}</p>
-                    <span class="badge">⭐ {row['rating']}</span>
-                    <p>👥 {int(row['votes'])} votes</p>
-                </div>
-                """, unsafe_allow_html=True)
-
-        col1, col2 = st.columns(2)
-        if col1.button("⬅ Previous", disabled=st.session_state.search_page == 0):
-            st.session_state.search_page -= 1
-            st.rerun()
-        if col2.button("Next ➡", disabled=end >= len(results)):
-            st.session_state.search_page += 1
-            st.rerun()
+tab1, tab2 = st.tabs(["🔍 Recommendations", "📊 Model Evaluation"])
 
 # ==================================================
-# 🎭 BROWSE BY GENRE
+# 🔍 TAB 1: RECOMMENDATIONS
 # ==================================================
-st.header("🎭 Browse by Genre")
-genre = st.text_input("Genre (Action, Drama, Sci-Fi)")
+with tab1:
 
-if st.button("Search Genre"):
-    st.session_state.genre_page = 0
-    st.session_state.genre_results = search_by_genre(genre)
+    st.header("🔍 Search Movies")
+    query = st.text_input("Movie title", key="search_query")  # 🔧 FIX 3
 
-if genre and "genre_results" in st.session_state:
-    results = st.session_state.genre_results
+    if st.button("Search Movie"):
+        st.session_state.search_results = search_movie(query)
 
-    if results.empty:
-        st.markdown("<div class='empty-box'>❌ No movies found</div>", unsafe_allow_html=True)
-    else:
-        start = st.session_state.genre_page * RESULTS_PER_PAGE
-        end = start + RESULTS_PER_PAGE
+    if query and "search_results" in st.session_state:
+        for _, row in st.session_state.search_results.head(RESULTS_PER_PAGE).iterrows():
+            st.markdown(f"""
+            <div class="card">
+                <h3>{row['title']} ({row['year']})</h3>
+                <p>🎭 {row['genres']}</p>
+                <span class="badge">⭐ {row['rating']}</span>
+            </div>
+            """, unsafe_allow_html=True)
 
-        for _, row in results.iloc[start:end].iterrows():
-            c1, c2 = st.columns([1, 4])
-            with c1:
-                st.image(get_poster_url(row["title"]), width=140)
-            with c2:
-                st.markdown(f"""
-                <div class="card">
-                    <h3>{row['title']}</h3>
-                    <span class="badge">⭐ {row['rating']}</span>
-                </div>
-                """, unsafe_allow_html=True)
+    st.header("🎥 Similar Movies")
+    base_movie = st.text_input("Base movie", key="base_movie")  # 🔧 FIX 3
 
-        col1, col2 = st.columns(2)
-        if col1.button("⬅ Previous Genre", disabled=st.session_state.genre_page == 0):
-            st.session_state.genre_page -= 1
-            st.rerun()
-        if col2.button("Next Genre ➡", disabled=end >= len(results)):
-            st.session_state.genre_page += 1
-            st.rerun()
+    if st.button("Find Similar Movies"):
+        st.session_state.similar_results = get_similar_movies(base_movie)
 
-# ==================================================
-# 🎥 SIMILAR MOVIES
-# ==================================================
-st.header("🎥 Similar Movies")
-base_movie = st.text_input("Base movie")
+    if base_movie and "similar_results" in st.session_state:
+        for _, row in st.session_state.similar_results.head(RESULTS_PER_PAGE).iterrows():
+            st.markdown(f"""
+            <div class="card">
+                <h3>{row['title']}</h3>
+                <span class="badge">⭐ {row['rating']}</span>
+            </div>
+            """, unsafe_allow_html=True)
 
-if st.button("Find Similar Movies"):
-    st.session_state.similar_page = 0
-    st.session_state.similar_results = get_similar_movies(base_movie)
+    st.header("🤝 Hybrid Recommendations")
 
-if base_movie and "similar_results" in st.session_state:
-    results = st.session_state.similar_results
+    user_id = st.number_input("User ID (MovieLens)", min_value=1, value=1)
+    alpha = st.slider("Content vs User Preference Weight (α)", 0.0, 1.0, 0.6)
 
-    if results.empty:
-        st.markdown("<div class='empty-box'>❌ Movie not found</div>", unsafe_allow_html=True)
-    else:
-        start = st.session_state.similar_page * RESULTS_PER_PAGE
-        end = start + RESULTS_PER_PAGE
-
-        for _, row in results.iloc[start:end].iterrows():
-            c1, c2 = st.columns([1, 4])
-            with c1:
-                st.image(get_poster_url(row["title"]), width=140)
-            with c2:
-                st.markdown(f"""
-                <div class="card">
-                    <h3>{row['title']}</h3>
-                    <span class="badge">⭐ {row['rating']}</span>
-                </div>
-                """, unsafe_allow_html=True)
-
-        col1, col2 = st.columns(2)
-        if col1.button("⬅ Previous Similar", disabled=st.session_state.similar_page == 0):
-            st.session_state.similar_page -= 1
-            st.rerun()
-        if col2.button("Next Similar ➡", disabled=end >= len(results)):
-            st.session_state.similar_page += 1
-            st.rerun()
-
-# ==================================================
-# 🤝 HYBRID RECOMMENDATIONS (NEW – SAME UI STYLE)
-# ==================================================
-st.header("🤝 Hybrid Recommendations")
-
-hybrid_movie = st.text_input("Base movie for hybrid recommendation")
-user_id = st.number_input("User ID (MovieLens)", min_value=1, value=1)
-alpha = st.slider("Content vs User Preference Weight", 0.0, 1.0, 0.6)
-
-if st.button("Get Hybrid Recommendations"):
-    hybrid_results = get_hybrid_recommendations(
-        hybrid_movie,
-        user_id=user_id,
-        alpha=alpha
-    )
-
-    if hybrid_results.empty:
-        st.markdown("<div class='empty-box'>❌ No recommendations found</div>", unsafe_allow_html=True)
-    else:
-        for _, row in hybrid_results.iterrows():
-            c1, c2 = st.columns([1, 4])
-            with c1:
-                st.image(get_poster_url(row["title"]), width=140)
-            with c2:
+    if st.button("Get Hybrid Recommendations"):
+        if base_movie.strip() == "":                     # 🔧 FIX 2
+            st.warning("Please enter a base movie title.")
+        else:
+            hybrid_results = get_hybrid_recommendations(base_movie, user_id, alpha)
+            for _, row in hybrid_results.iterrows():
                 st.markdown(f"""
                 <div class="card">
                     <h3>{row['title']} ({row['year']})</h3>
@@ -282,58 +191,38 @@ if st.button("Get Hybrid Recommendations"):
                 </div>
                 """, unsafe_allow_html=True)
 
+    st.header("🔎 Similarity Heatmap")
+
+    if st.button("Show Similarity Heatmap"):
+        idx = get_movie_index(base_movie)
+        if idx is not None:
+            top_idx = compute_similarity_for_index(idx, 10)
+            labels = movies.iloc[top_idx]["title"]       # 🔧 FIX 1 used here
+            matrix = compute_similarity_matrix(top_idx)
+
+            fig, ax = plt.subplots(figsize=(10, 8))
+            sns.heatmap(matrix, xticklabels=labels, yticklabels=labels, cmap="magma", ax=ax)
+            plt.xticks(rotation=90)
+            st.pyplot(fig)
+
 # ==================================================
-# 📊 EXPLAINABILITY & EVALUATION
+# 📊 TAB 2: MODEL EVALUATION
 # ==================================================
-st.header("📊 Explainability & Evaluation")
+with tab2:
+    st.header("📊 Model Evaluation (Offline Metrics)")
 
-st.markdown(f"""
-<div class="info-card">
-<strong>Collaborative Filtering RMSE:</strong> {st.session_state.rmse:.3f}<br><br>
-<strong>Similarity Heatmap:</strong><br>
-The heatmap visualizes how similar recommended movies are to each other using cosine
-similarity over genre and description features.
-</div>
-""", unsafe_allow_html=True)
+    st.metric("Collaborative Filtering RMSE", f"{st.session_state.rmse:.3f}")
 
-if st.button("Show Similarity Heatmap"):
-    idx = get_movie_index(base_movie)
-    if idx is not None:
-        top_idx = compute_similarity_for_index(idx, top_n=10)
-        labels = movies.iloc[top_idx]["title"]
+    precision, recall = precision_recall_at_k(k=10, rating_threshold=7.0)
 
-        matrix = compute_similarity_matrix(top_idx)
-
-        fig, ax = plt.subplots(figsize=(10, 8))
-        sns.heatmap(
-            matrix,
-            xticklabels=labels,
-            yticklabels=labels,
-            cmap="magma",
-            ax=ax
-        )
-        plt.xticks(rotation=90)
-        st.pyplot(fig)
-
-
-st.markdown("""
-<div class="info-card">
-<strong>K Value:</strong> Number of top recommendations considered during evaluation.<br>
-<strong>Rating Threshold:</strong> Minimum IMDb rating for a movie to be treated as relevant.
-</div>
-""", unsafe_allow_html=True)
-
-k = st.slider("K value", 5, 20, 10)
-threshold = st.slider("Rating threshold", 6.0, 9.0, 7.0)
-
-if st.button("Evaluate Model"):
-    p, r = precision_recall_at_k(k, threshold)
-    st.metric("Precision@K", f"{p:.3f}")
-    st.metric("Recall@K", f"{r:.3f}")
+    col1, col2 = st.columns(2)
+    col1.metric("Precision@10", f"{precision:.3f}")
+    col2.metric("Recall@10", f"{recall:.3f}")
 
     st.markdown("""
-    <div class="info-card">
-    <strong>Precision@K:</strong> Fraction of recommended movies in the top K that are relevant.<br><br>
-    <strong>Recall@K:</strong> Fraction of all relevant movies that appear in the top K.
-    </div>
-    """, unsafe_allow_html=True)
+    ---
+    **Note:**  
+    RMSE, Precision, and Recall are computed offline using a fixed evaluation setup.
+    The hybrid α slider affects recommendation fusion only and does not influence
+    evaluation metrics.
+    """)
