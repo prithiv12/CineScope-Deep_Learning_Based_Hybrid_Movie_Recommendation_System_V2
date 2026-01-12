@@ -291,7 +291,6 @@ with tab2:
 
     st.markdown(f"""
     <div class="info-card">
-    <strong>Collaborative Filtering RMSE:</strong> {st.session_state.rmse:.3f}<br><br>
     <strong>Similarity Heatmap:</strong><br>
     The heatmap visualizes how similar recommended movies are to each other using cosine
     similarity over genre and description features.
@@ -315,7 +314,13 @@ with tab2:
             )
             plt.xticks(rotation=90)
             st.pyplot(fig)
-
+            
+    st.markdown(f"""
+    <div class="info-card">
+    <strong>Collaborative Filtering RMSE:</strong> {st.session_state.rmse:.3f}<br><br>
+     </div>
+    """, unsafe_allow_html=True)
+    
     st.markdown("""
     <div class="info-card">
     <strong>Precision@K:</strong> Fraction of recommended movies in the top K that are relevant.<br><br>
@@ -328,3 +333,4 @@ with tab2:
     col1, col2 = st.columns(2)
     col1.metric("Precision@10", f"{precision:.3f}")
     col2.metric("Recall@10", f"{recall:.3f}")
+
