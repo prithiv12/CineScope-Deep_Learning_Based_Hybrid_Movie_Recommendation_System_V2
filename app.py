@@ -293,7 +293,7 @@ with tab2:
     <div class="info-card">
     <strong>Similarity Heatmap:</strong><br>
     The heatmap visualizes how similar recommended movies are to each other using cosine
-    similarity over genre and description features.
+    similarity over genre and description features. (Please enter a base movie name and click the Find Similar Movies button in the Similar Movies section under the Recommendations tab before selecting Show Similarity Heatmap.)
     </div>
     """, unsafe_allow_html=True)
 
@@ -317,14 +317,14 @@ with tab2:
             
     st.markdown(f"""
     <div class="info-card">
-    <strong>Collaborative Filtering RMSE:</strong> {st.session_state.rmse:.3f}<br><br>
+    <strong>Collaborative Filtering RMSE (The average error between predicted and actual user ratings):</strong> {st.session_state.rmse:.3f}<br><br>
      </div>
     """, unsafe_allow_html=True)
     
     st.markdown("""
     <div class="info-card">
-    <strong>Precision@K:</strong> Fraction of recommended movies in the top K that are relevant.<br><br>
-    <strong>Recall@K:</strong> Fraction of all relevant movies that appear in the top K.
+    <strong>Precision@K:</strong> Indicates how relevant the top K recommended movies are..<br><br>
+    <strong>Recall@K:</strong> Evaluates coverage of relevant items within the recommendation list.
     </div>
     """, unsafe_allow_html=True)
 
@@ -333,5 +333,6 @@ with tab2:
     col1, col2 = st.columns(2)
     col1.metric("Precision@10", f"{precision:.3f}")
     col2.metric("Recall@10", f"{recall:.3f}")
+
 
 
