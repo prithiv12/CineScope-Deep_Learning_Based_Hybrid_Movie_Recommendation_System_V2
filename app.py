@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 from recommender_core import *
-from recommender_core import movies          # FIX: heatmap safety
+from recommender_core import movies
 from collaborative_filtering import train_collaborative_model
 
 RESULTS_PER_PAGE = 10
@@ -18,24 +18,35 @@ st.set_page_config(
 )
 
 # ==================================================
-# UI CSS (UNCHANGED)
+# UI CSS (FULLY RESTORED – INCLUDING BUTTON STYLING)
 # ==================================================
 st.markdown("""
 <style>
-body { background: radial-gradient(circle at top, #0f172a, #020617); }
-.block-container { padding-top: 1.5rem; }
-h1, h3 { font-family: 'Segoe UI'; color: #FFFFF0; }
+body {
+    background: radial-gradient(circle at top, #0f172a, #020617);
+}
+.block-container {
+    padding-top: 1.5rem;
+}
+h1, h3 {
+    font-family: 'Segoe UI', sans-serif;
+    color: #FFFFF0;
+}
 .card {
     background: rgba(180, 7, 16, 0.8);
+    backdrop-filter: blur(12px);
     padding: 18px;
     border-radius: 18px;
     box-shadow: 0 15px 35px rgba(0,0,0,0.45);
     margin-bottom: 20px;
 }
-.poster { border-radius: 14px; }
+.poster {
+    border-radius: 14px;
+}
 .badge {
+    display: inline-block;
     padding: 6px 12px;
-    background: linear-gradient(90deg, #f97316, #000);
+    background: linear-gradient(90deg, #f97316, #000000);
     color: white;
     border-radius: 999px;
     font-weight: 700;
@@ -46,6 +57,14 @@ h1, h3 { font-family: 'Segoe UI'; color: #FFFFF0; }
     background: rgba(2,6,23,0.7);
     border-radius: 18px;
     color: #94a3b8;
+}
+div.stButton > button {
+    background: rgba(180, 7, 16, 0.8);
+    color: white;
+    border-radius: 999px;
+    padding: 0.45rem 1.5rem;
+    border: none;
+    font-weight: 700;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -139,9 +158,42 @@ with tab1:
             st.session_state.search_page += 1
             st.rerun()
 
+    # ---------- GENRE ----------
+    st.header("🎭 Browse by Genre")
+    genre = st.text_input("Genre (Action, Drama, Sci-Fi)", key="genre_query")
+
+    if st.button("Search Genre"):
+        st.session_state.genre_page = 0
+        st.session_state.genre_results = search_by_genre(genre, limit=100)
+
+    if genre and "genre_results" in st.session_state:
+        results = st.session_state.genre_results
+        start = st.session_state.genre_page * RESULTS_PER_PAGE
+        end = start + RESULTS_PER_PAGE
+
+        for _, row in results.iloc[start:end].iterrows():
+            c1, c2 = st.columns([1, 4])
+            with c1:
+                st.image(get_poster_url(row["title"]), width=140)
+            with c2:
+                st.markdown(f"""
+                <div class="card">
+                    <h3>{row['title']}</h3>
+                    <span class="badge">⭐ {row['rating']}</span>
+                </div>
+                """, unsafe_allow_html=True)
+
+        col1, col2 = st.columns(2)
+        if col1.button("⬅ Previous Genre", disabled=st.session_state.genre_page == 0):
+            st.session_state.genre_page -= 1
+            st.rerun()
+        if col2.button("Next Genre ➡", disabled=end >= len(results)):
+            st.session_state.genre_page += 1
+            st.rerun()
+
     # ---------- SIMILAR ----------
     st.header("🎥 Similar Movies")
-    base_movie = st.text_input("Base movie", key="base_movie")
+    base_movie = st.text_input("Base movie", key="similar_base")
 
     if st.button("Find Similar Movies"):
         st.session_state.similar_page = 0
@@ -172,7 +224,7 @@ with tab1:
             st.session_state.similar_page += 1
             st.rerun()
 
-      # ---------- HEATMAP ----------
+    # ---------- HEATMAP ----------
     st.header("🔎 Similarity Heatmap")
     if st.button("Show Similarity Heatmap"):
         idx = get_movie_index(base_movie)
@@ -188,12 +240,15 @@ with tab1:
 
     # ---------- HYBRID ----------
     st.header("🤝 Hybrid Recommendations")
+    hybrid_movie = st.text_input("Base movie for hybrid recommendation", key="hybrid_base")
     user_id = st.number_input("User ID (MovieLens)", min_value=1, value=1)
     alpha = st.slider("Content vs User Preference Weight (α)", 0.0, 1.0, 0.6)
 
     if st.button("Get Hybrid Recommendations"):
-        if base_movie.strip():
-            hybrid_results = get_hybrid_recommendations(base_movie, user_id, alpha, top_n=RESULTS_PER_PAGE)
+        if hybrid_movie.strip():
+            hybrid_results = get_hybrid_recommendations(
+                hybrid_movie, user_id, alpha, top_n=RESULTS_PER_PAGE
+            )
             for _, row in hybrid_results.iterrows():
                 c1, c2 = st.columns([1, 4])
                 with c1:
@@ -211,7 +266,7 @@ with tab1:
             st.warning("Please enter a base movie title.")
 
 # ==================================================
-# TAB 2: EVALUATION
+# TAB 2: MODEL EVALUATION
 # ==================================================
 with tab2:
     st.header("📊 Model Evaluation (Offline Metrics)")
