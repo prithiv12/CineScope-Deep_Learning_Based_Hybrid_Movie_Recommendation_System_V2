@@ -354,6 +354,26 @@ with tab2:
         Indicates how well the model generalizes to unseen data.
         </div>
         """, unsafe_allow_html=True)
+        
+    # ================= RMSE COMPARISON GRAPH =================
+    if st.session_state.train_rmse is not None and st.session_state.test_rmse is not None:
+        fig, ax = plt.subplots(figsize=(5, 4))
+
+        rmse_values = [
+            st.session_state.train_rmse,
+            st.session_state.test_rmse
+        ]
+
+        labels = ["Train RMSE", "Test RMSE"]
+
+        ax.bar(labels, rmse_values)
+        ax.set_ylabel("RMSE")
+        ax.set_title("Train vs Test RMSE Comparison")
+
+        for i, v in enumerate(rmse_values):
+            ax.text(i, v + 0.05, f"{v:.2f}", ha="center", fontweight="bold")
+
+        st.pyplot(fig)
 
     # ================= Precision / Recall =================
     st.markdown("""
@@ -368,4 +388,5 @@ with tab2:
     col1, col2 = st.columns(2)
     col1.metric("Precision@10", f"{precision:.3f}")
     col2.metric("Recall@10", f"{recall:.3f}")
+
 
