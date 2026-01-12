@@ -119,8 +119,9 @@ if not st.session_state.logged_in:
 if not st.session_state.cf_trained:
     try:
         with st.spinner("Training collaborative filtering model..."):
-            rmse = train_collaborative_model("ratings.csv")
-            st.session_state.rmse = rmse
+            train_rmse, test_rmse = train_collaborative_model("ratings.csv")
+            st.session_state.train_rmse = train_rmse
+            st.session_state.test_rmse = test_rmse
             st.session_state.cf_trained = True
     except FileNotFoundError:
         st.error("ratings.csv not found. Please run ratingsdataset.py first.")
@@ -367,3 +368,4 @@ with tab2:
     col1, col2 = st.columns(2)
     col1.metric("Precision@10", f"{precision:.3f}")
     col2.metric("Recall@10", f"{recall:.3f}")
+
