@@ -16,6 +16,9 @@ def train_collaborative_model(ratings_path="ratings.csv", n_factors=50):
     global USER_INDEX, ITEM_INDEX
 
     ratings = pd.read_csv(ratings_path)
+    required_cols = {"userId", "movieId", "rating"}
+    if not required_cols.issubset(ratings.columns):
+        raise ValueError("ratings.csv must contain userId, movieId, rating columns")
 
     user_ids = ratings["userId"].unique()
     movie_ids = ratings["movieId"].unique()
@@ -32,7 +35,8 @@ def train_collaborative_model(ratings_path="ratings.csv", n_factors=50):
         shape=(len(USER_INDEX), len(ITEM_INDEX))
     )
 
-    svd = TruncatedSVD(n_components=n_factors, random_state=42)
+    n_components = min(n_factors, R.shape[1] - 1)
+    svd = TruncatedSVD(n_components=n_components, random_state=42)
     USER_FACTORS = svd.fit_transform(R)
     ITEM_FACTORS = svd.components_.T
 
