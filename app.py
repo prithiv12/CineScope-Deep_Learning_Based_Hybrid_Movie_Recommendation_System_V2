@@ -325,8 +325,13 @@ with tab2:
     st.markdown(f"""
     <div class="info-card">
     <strong>Collaborative Filtering RMSE:</strong><br>
-    The average error between predicted and actual user ratings.<br><br>
-    <strong>RMSE:</strong> {st.session_state.rmse:.3f}
+    RMSE measures the difference between predicted and actual user ratings.<br><br>
+   
+    <strong>Train RMSE:</strong> {st.session_state.train_rmse:.3f}<br>
+    Represents how well the model fits the training data.<br><br>
+    
+    <strong>Test RMSE:</strong> {st.session_state.test_rmse:.3f}<br>
+    Indicates how well the model generalizes to unseen user–movie interactions.
     </div>
     """, unsafe_allow_html=True)
 
@@ -342,3 +347,4 @@ with tab2:
     col1, col2 = st.columns(2)
     col1.metric("Precision@10", f"{precision:.3f}")
     col2.metric("Recall@10", f"{recall:.3f}")
+
