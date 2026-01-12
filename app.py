@@ -115,10 +115,17 @@ if not st.session_state.logged_in:
 # TRAIN COLLABORATIVE FILTERING (ONCE)
 # ==================================================
 if not st.session_state.cf_trained:
-    with st.spinner("Training collaborative filtering model..."):
-        rmse = train_collaborative_model("ratings.csv")
-        st.session_state.rmse = rmse
-        st.session_state.cf_trained = True
+    try:
+        with st.spinner("Training collaborative filtering model..."):
+            rmse = train_collaborative_model("ratings.csv")
+            st.session_state.rmse = rmse
+            st.session_state.cf_trained = True
+    except FileNotFoundError:
+        st.error("ratings.csv not found. Please run ratingsdataset.py first.")
+        st.stop()
+    except Exception as e:
+        st.error(f"Collaborative model training failed: {e}")
+        st.stop()
 
 # ==================================================
 # HEADER
@@ -289,41 +296,43 @@ with tab1:
 with tab2:
     st.header("📊 Explainability & Evaluation")
 
-    st.markdown(f"""
+    st.markdown("""
     <div class="info-card">
     <strong>Similarity Heatmap:</strong><br>
     The heatmap visualizes how similar recommended movies are to each other using cosine
-    similarity over genre and description features. (Please enter a base movie name and click the Find Similar Movies button in the Similar Movies section under the Recommendations tab before selecting Show Similarity Heatmap.)
+    similarity over genre and description features.
     </div>
     """, unsafe_allow_html=True)
 
     if st.button("Show Similarity Heatmap"):
-        idx = get_movie_index(base_movie)
-        if idx is not None:
-            top_idx = compute_similarity_for_index(idx, top_n=10)
-            labels = movies.iloc[top_idx]["title"]
-            matrix = compute_similarity_matrix(top_idx)
+        if not base_movie:
+            st.warning("Please enter a base movie and find similar movies first.")
+        else:
+            idx = get_movie_index(base_movie)
+            if idx is not None:
+                top_idx = compute_similarity_for_index(idx, top_n=10)
+                if len(top_idx) > 1:
+                    labels = movies.iloc[top_idx]["title"]
+                    matrix = compute_similarity_matrix(top_idx)
 
-            fig, ax = plt.subplots(figsize=(10, 8))
-            sns.heatmap(
-                matrix,
-                xticklabels=labels,
-                yticklabels=labels,
-                cmap="magma",
-                ax=ax
-            )
-            plt.xticks(rotation=90)
-            st.pyplot(fig)
-            
+                    fig, ax = plt.subplots(figsize=(10, 8))
+                    sns.heatmap(matrix, xticklabels=labels, yticklabels=labels, cmap="magma", ax=ax)
+                    plt.xticks(rotation=90)
+                    st.pyplot(fig)
+                else:
+                    st.warning("Not enough similar movies to plot heatmap.")
+
     st.markdown(f"""
     <div class="info-card">
-    <strong>Collaborative Filtering RMSE (The average error between predicted and actual user ratings):</strong> {st.session_state.rmse:.3f}<br><br>
-     </div>
+    <strong>Collaborative Filtering RMSE:</strong><br>
+    The average error between predicted and actual user ratings.<br><br>
+    <strong>RMSE:</strong> {st.session_state.rmse:.3f}
+    </div>
     """, unsafe_allow_html=True)
-    
+
     st.markdown("""
     <div class="info-card">
-    <strong>Precision@K:</strong> Indicates how relevant the top K recommended movies are..<br><br>
+    <strong>Precision@K:</strong> Indicates how relevant the top K recommended movies are.<br><br>
     <strong>Recall@K:</strong> Evaluates coverage of relevant items within the recommendation list.
     </div>
     """, unsafe_allow_html=True)
@@ -333,6 +342,3 @@ with tab2:
     col1, col2 = st.columns(2)
     col1.metric("Precision@10", f"{precision:.3f}")
     col2.metric("Recall@10", f"{recall:.3f}")
-
-
-
