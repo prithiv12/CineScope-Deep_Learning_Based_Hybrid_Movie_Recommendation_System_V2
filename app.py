@@ -94,7 +94,9 @@ defaults = {
     "search_page": 0,
     "genre_page": 0,
     "similar_page": 0,
-    "cf_trained": False
+    "cf_trained": False,
+    "train_rmse": None,
+    "test_rmse": None
 }
 for k, v in defaults.items():
     if k not in st.session_state:
@@ -316,25 +318,43 @@ with tab2:
                     matrix = compute_similarity_matrix(top_idx)
 
                     fig, ax = plt.subplots(figsize=(10, 8))
-                    sns.heatmap(matrix, xticklabels=labels, yticklabels=labels, cmap="magma", ax=ax)
+                    sns.heatmap(
+                        matrix,
+                        xticklabels=labels,
+                        yticklabels=labels,
+                        cmap="magma",
+                        ax=ax
+                    )
                     plt.xticks(rotation=90)
                     st.pyplot(fig)
                 else:
                     st.warning("Not enough similar movies to plot heatmap.")
 
-    st.markdown(f"""
+    # ================= RMSE EXPLANATION =================
+    st.markdown("""
     <div class="info-card">
     <strong>Collaborative Filtering RMSE:</strong><br>
-    RMSE measures the difference between predicted and actual user ratings.<br><br>
-   
-    <strong>Train RMSE:</strong> {st.session_state.train_rmse:.3f}<br>
-    Represents how well the model fits the training data.<br><br>
-    
-    <strong>Test RMSE:</strong> {st.session_state.test_rmse:.3f}<br>
-    Indicates how well the model generalizes to unseen user–movie interactions.
+    RMSE (Root Mean Squared Error) measures the average difference between
+    predicted ratings and actual user ratings. Lower values indicate
+    better prediction accuracy.
     </div>
     """, unsafe_allow_html=True)
 
+    # ================= RMSE VALUES =================
+    if st.session_state.train_rmse is not None:
+        st.markdown(f"""
+        <div class="info-card">
+        <strong>Collaborative Filtering RMSE:</strong><br><br>
+
+        <strong>Train RMSE:</strong> {st.session_state.train_rmse:.3f}<br>
+        Represents how well the model fits the training data.<br><br>
+
+        <strong>Test RMSE:</strong> {st.session_state.test_rmse if st.session_state.test_rmse else "Not evaluated"}<br>
+        Indicates how well the model generalizes to unseen data.
+        </div>
+        """, unsafe_allow_html=True)
+
+    # ================= Precision / Recall =================
     st.markdown("""
     <div class="info-card">
     <strong>Precision@K:</strong> Indicates how relevant the top K recommended movies are.<br><br>
@@ -347,4 +367,3 @@ with tab2:
     col1, col2 = st.columns(2)
     col1.metric("Precision@10", f"{precision:.3f}")
     col2.metric("Recall@10", f"{recall:.3f}")
-
