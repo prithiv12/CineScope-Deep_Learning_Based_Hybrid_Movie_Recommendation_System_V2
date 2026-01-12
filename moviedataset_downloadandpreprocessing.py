@@ -107,8 +107,13 @@ def get_description(imdb_id):
         cache_dict[imdb_id] = desc
         return desc
 
+    except requests.exceptions.RequestException:
+        time.sleep(1)
+        return ""
+        
     except Exception:
         return ""
+
 
 # ==============================
 # FETCH DESCRIPTIONS
